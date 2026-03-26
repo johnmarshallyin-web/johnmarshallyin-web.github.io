@@ -199,7 +199,7 @@ function updateLabels() {
     let zoom = map.getZoom();
 
     labels.forEach(label => {
-        if (zoom >= 11) {
+        if (zoom >= 22) {
             if (!map.hasLayer(label)) {
                 label.addTo(map);
             }
