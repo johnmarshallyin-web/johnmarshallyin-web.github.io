@@ -25,7 +25,7 @@ body {
     border-radius: 10px;
     z-index: 1000;
 }
-    
+
 #map {
     height: 600px;
     width: 90%;
@@ -37,25 +37,24 @@ body {
     margin: 15px;
 }
 
+/* Smooth hover animation */
 .leaflet-interactive {
     transition: all 0.2s ease;
 }
 
+/* Labels */
 .label {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: bold;
     color: white;
     text-align: center;
-    pointer-events: none; /* prevents blocking clicks */
-}
-
-.label {
-    font-size: 9px;
     background: rgba(0,0,0,0.6);
     padding: 2px 4px;
     border-radius: 4px;
+    pointer-events: none; /* 🔥 prevents blocking clicks */
+    opacity: 0.9;
+    transition: opacity 0.2s ease;
 }
-    
 </style>
 </head>
 
@@ -85,7 +84,7 @@ body {
 
     <p id="recommended"></p>
 </div>
-    
+
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -93,27 +92,30 @@ body {
 
 <script>
 
+// Initialize map
 var map = L.map('map').setView([41.8781, -87.6298], 10);
 
-// Use CARTO tiles (avoids OpenStreetMap blocking issue)
+// Tile layer
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; OpenStreetMap &copy; CARTO'
 }).addTo(map);
 
 let geoLayer;
 let currentBudget = 2000;
+let labels = []; // 🔥 store labels
 
 function getColor(rent) {
     return rent <= currentBudget ? "green" : "red";
 }
 
+// Hover highlight
 function highlightFeature(e) {
     let layer = e.target;
 
     layer.setStyle({
-        weight: 3,
+        weight: 4,
         color: "#fff",
-        fillOpacity: 0.8
+        fillOpacity: 0.9
     });
 
     layer.bringToFront();
@@ -122,7 +124,22 @@ function highlightFeature(e) {
 function resetHighlight(e) {
     geoLayer.resetStyle(e.target);
 }
-    
+
+// Sidebar
+function showSidebar(name, rent) {
+    document.getElementById("area-name").innerText = name;
+    document.getElementById("area-rent").innerText = "Avg Rent: $" + rent;
+
+    let info = "";
+
+    if (rent < 1500) info = "💰 Very affordable";
+    else if (rent < 2200) info = "👍 Moderate price";
+    else info = "💸 Expensive area";
+
+    document.getElementById("area-info").innerText = info;
+}
+
+// Load GeoJSON
 fetch("chicago.geojson")
 .then(res => res.json())
 .then(data => {
@@ -144,6 +161,7 @@ fetch("chicago.geojson")
             let name = (feature.properties.community || "").toUpperCase();
             let rent = rentData[name] || "Unknown";
 
+            // Interactions
             layer.on({
                 mouseover: highlightFeature,
                 mouseout: resetHighlight,
@@ -152,35 +170,66 @@ fetch("chicago.geojson")
 
             layer.bindPopup(`<b>${name}</b><br>Avg Rent: $${rent}`);
 
-            // Label
+            // 🏷️ Label (stored, not added yet)
             let center = layer.getBounds().getCenter();
 
-            L.marker(center, {
+            let label = L.marker(center, {
                 icon: L.divIcon({
                     className: 'label',
                     html: name,
                     iconSize: [100, 20]
-                })
-            }).addTo(map);
+                }),
+                interactive: false
+            });
+
+            labels.push(label);
         }
 
-    }).addTo(map); // ✅ THIS LINE FIXES EVERYTHING
+    }).addTo(map);
 
+    updateLabels(); // run once after load
 });
-    
-function showSidebar(name, rent) {
-    document.getElementById("area-name").innerText = name;
-    document.getElementById("area-rent").innerText = "Avg Rent: $" + rent;
 
-    let info = "";
+// Show/hide labels based on zoom
+function updateLabels() {
+    let zoom = map.getZoom();
 
-    if (rent < 1500) info = "💰 Very affordable";
-    else if (rent < 2200) info = "👍 Moderate price";
-    else info = "💸 Expensive area";
-
-    document.getElementById("area-info").innerText = info;
+    labels.forEach(label => {
+        if (zoom >= 11) {
+            if (!map.hasLayer(label)) {
+                label.addTo(map);
+            }
+        } else {
+            if (map.hasLayer(label)) {
+                map.removeLayer(label);
+            }
+        }
+    });
 }
 
+// Run on zoom
+map.on("zoomend", updateLabels);
+
+// Update colors
+function updateColors() {
+    if (!geoLayer) return;
+
+    currentBudget = document.getElementById("budget").value;
+
+    geoLayer.setStyle(feature => {
+        let name = (feature.properties.community || "").toUpperCase();
+        let rent = rentData[name] || 1500;
+
+        return {
+            fillColor: getColor(rent),
+            weight: 1,
+            color: "black",
+            fillOpacity: 0.6
+        };
+    });
+}
+
+// Budget calculator
 function calculateBudget() {
     let hourly = document.getElementById("hourly").value;
     let salary = document.getElementById("salary").value;
@@ -188,7 +237,7 @@ function calculateBudget() {
     let monthlyIncome = 0;
 
     if (hourly) {
-        monthlyIncome = hourly * 40 * 4; // 40 hrs/week
+        monthlyIncome = hourly * 40 * 4;
     } else if (salary) {
         monthlyIncome = salary / 12;
     } else {
@@ -201,12 +250,11 @@ function calculateBudget() {
     document.getElementById("recommended").innerText =
         "Recommended Rent Budget: $" + rentBudget;
 
-    // 🔥 auto-fill into your map filter
     document.getElementById("budget").value = rentBudget;
 
     updateColors();
 }
-    
+
 </script>
 
 </body>
