@@ -1,2 +1,2 @@
-# johnmarshallyin-web.github.io
+# chicago-rents-calculator-comp150.github.io
 Project testing
