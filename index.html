@@ -129,7 +129,7 @@ fetch("chicago.geojson")
 
     geoLayer = L.geoJSON(data, {
         style: feature => {
-            let name = feature.properties.community;
+            let name = (feature.properties.community || "").toUpperCase();
             let rent = rentData[name] || 1500;
 
             return {
@@ -139,45 +139,35 @@ fetch("chicago.geojson")
                 fillOpacity: 0.6
             };
         },
-onEachFeature: (feature, layer) => {
-    let name = (feature.properties.community || "").toUpperCase();
-    let rent = rentData[name] || "Unknown";
 
-    // Hover + click (your existing stuff)
-    layer.on({
-        mouseover: highlightFeature,
-        mouseout: resetHighlight,
-        click: () => showSidebar(name, rent)
-    });
+        onEachFeature: (feature, layer) => {
+            let name = (feature.properties.community || "").toUpperCase();
+            let rent = rentData[name] || "Unknown";
 
-    layer.bindPopup(`<b>${name}</b><br>Avg Rent: $${rent}`);
+            layer.on({
+                mouseover: highlightFeature,
+                mouseout: resetHighlight,
+                click: () => showSidebar(name, rent)
+            });
 
-    // 🏷️ ADD LABEL
-    let center = layer.getBounds().getCenter();
+            layer.bindPopup(`<b>${name}</b><br>Avg Rent: $${rent}`);
 
-    L.marker(center, {
-        icon: L.divIcon({
-            className: 'label',
-            html: name,
-            iconSize: [100, 20]
-        })
-    }).addTo(map);
-}
+            // Label
+            let center = layer.getBounds().getCenter();
+
+            L.marker(center, {
+                icon: L.divIcon({
+                    className: 'label',
+                    html: name,
+                    iconSize: [100, 20]
+                })
+            }).addTo(map);
+        }
+
+    }).addTo(map); // ✅ THIS LINE FIXES EVERYTHING
+
+});
     
-function updateColors() {
-    currentBudget = document.getElementById("budget").value;
-
-    geoLayer.setStyle(feature => {
-        let rent = rentData[feature.properties.community] || 1500;
-        return {
-            fillColor: getColor(rent),
-            weight: 1,
-            color: "black",
-            fillOpacity: 0.6
-        };
-    });
-}
-
 function showSidebar(name, rent) {
     document.getElementById("area-name").innerText = name;
     document.getElementById("area-rent").innerText = "Avg Rent: $" + rent;
