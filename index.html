@@ -14,6 +14,18 @@ body {
     color: white;
 }
 
+#sidebar {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    width: 220px;
+    background: #222;
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    z-index: 1000;
+}
+    
 #map {
     height: 600px;
     width: 90%;
@@ -37,6 +49,12 @@ body {
     <button onclick="updateColors()">Apply</button>
 </div>
 
+<div id="sidebar">
+    <h3 id="area-name">Click a neighborhood</h3>
+    <p id="area-rent">Rent: --</p>
+    <p id="area-info">Hover or click for details</p>
+</div>
+    
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -58,6 +76,22 @@ function getColor(rent) {
     return rent <= currentBudget ? "green" : "red";
 }
 
+function highlightFeature(e) {
+    let layer = e.target;
+
+    layer.setStyle({
+        weight: 3,
+        color: "#fff",
+        fillOpacity: 0.8
+    });
+
+    layer.bringToFront();
+}
+
+function resetHighlight(e) {
+    geoLayer.resetStyle(e.target);
+}
+    
 fetch("chicago.geojson")
 .then(res => res.json())
 .then(data => {
@@ -75,11 +109,17 @@ fetch("chicago.geojson")
             };
         },
         onEachFeature: (feature, layer) => {
-            let name = feature.properties.community;
-            let rent = rentData[name] || "Unknown";
+    let name = (feature.properties.community || "").toUpperCase();
+    let rent = rentData[name] || "Unknown";
 
-            layer.bindPopup(`<b>${name}</b><br>Avg Rent: $${rent}`);
-        }
+    layer.on({
+        mouseover: highlightFeature,
+        mouseout: resetHighlight,
+        click: () => showSidebar(name, rent)
+    });
+
+    layer.bindPopup(`<b>${name}</b><br>Avg Rent: $${rent}`);
+}
     }).addTo(map);
 });
 
@@ -97,6 +137,19 @@ function updateColors() {
     });
 }
 
+function showSidebar(name, rent) {
+    document.getElementById("area-name").innerText = name;
+    document.getElementById("area-rent").innerText = "Avg Rent: $" + rent;
+
+    let info = "";
+
+    if (rent < 1500) info = "💰 Very affordable";
+    else if (rent < 2200) info = "👍 Moderate price";
+    else info = "💸 Expensive area";
+
+    document.getElementById("area-info").innerText = info;
+}
+    
 </script>
 
 </body>
