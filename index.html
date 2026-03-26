@@ -40,6 +40,22 @@ body {
 .leaflet-interactive {
     transition: all 0.2s ease;
 }
+
+.label {
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+    text-align: center;
+    pointer-events: none; /* prevents blocking clicks */
+}
+
+.label {
+    font-size: 9px;
+    background: rgba(0,0,0,0.6);
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+    
 </style>
 </head>
 
@@ -57,6 +73,17 @@ body {
     <h3 id="area-name">Click a neighborhood</h3>
     <p id="area-rent">Rent: --</p>
     <p id="area-info">Hover or click for details</p>
+</div>
+
+<div class="controls">
+    <h3>Rent Budget Calculator</h3>
+
+    <input type="number" id="hourly" placeholder="Hourly wage ($)">
+    <input type="number" id="salary" placeholder="Annual salary ($)">
+    
+    <button onclick="calculateBudget()">Calculate Budget</button>
+
+    <p id="recommended"></p>
 </div>
     
 <div id="map"></div>
@@ -112,10 +139,11 @@ fetch("chicago.geojson")
                 fillOpacity: 0.6
             };
         },
-        onEachFeature: (feature, layer) => {
+onEachFeature: (feature, layer) => {
     let name = (feature.properties.community || "").toUpperCase();
     let rent = rentData[name] || "Unknown";
 
+    // Hover + click (your existing stuff)
     layer.on({
         mouseover: highlightFeature,
         mouseout: resetHighlight,
@@ -123,10 +151,19 @@ fetch("chicago.geojson")
     });
 
     layer.bindPopup(`<b>${name}</b><br>Avg Rent: $${rent}`);
-}
-    }).addTo(map);
-});
 
+    // 🏷️ ADD LABEL
+    let center = layer.getBounds().getCenter();
+
+    L.marker(center, {
+        icon: L.divIcon({
+            className: 'label',
+            html: name,
+            iconSize: [100, 20]
+        })
+    }).addTo(map);
+}
+    
 function updateColors() {
     currentBudget = document.getElementById("budget").value;
 
@@ -152,6 +189,32 @@ function showSidebar(name, rent) {
     else info = "💸 Expensive area";
 
     document.getElementById("area-info").innerText = info;
+}
+
+function calculateBudget() {
+    let hourly = document.getElementById("hourly").value;
+    let salary = document.getElementById("salary").value;
+
+    let monthlyIncome = 0;
+
+    if (hourly) {
+        monthlyIncome = hourly * 40 * 4; // 40 hrs/week
+    } else if (salary) {
+        monthlyIncome = salary / 12;
+    } else {
+        document.getElementById("recommended").innerText = "Enter income first.";
+        return;
+    }
+
+    let rentBudget = Math.round(monthlyIncome * 0.3);
+
+    document.getElementById("recommended").innerText =
+        "Recommended Rent Budget: $" + rentBudget;
+
+    // 🔥 auto-fill into your map filter
+    document.getElementById("budget").value = rentBudget;
+
+    updateColors();
 }
     
 </script>
