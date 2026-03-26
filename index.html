@@ -55,12 +55,21 @@ body {
     opacity: 0.9;
     transition: opacity 0.2s ease;
 }
+
+.subtitle {
+    font-size: 14px;
+    color: #bbb;
+    margin-top: -5px;
+    margin-bottom: 10px;
+}
+    
 </style>
 </head>
 
 <body>
 
 <h2>Chicago Neighborhood Rent Finder</h2>
+<p class="subtitle">Find out which neighbourhoods of the Windy City you could afford!</p>
 
 <div class="controls">
     Budget: $
@@ -76,7 +85,7 @@ body {
 
 <div class="controls">
     <h3>Rent Budget Calculator</h3>
-
+    <p class="subtitle">Initial recommended budget for rent based off your wage or salary (30% rule).</p>
     <input type="number" id="hourly" placeholder="Hourly wage ($)">
     <input type="number" id="salary" placeholder="Annual salary ($)">
     
